@@ -35,6 +35,7 @@ export const onZoomMove = (e: d3.D3ZoomEvent<SVGSVGElement, null>): void => {
 export const onSelect = (e: MouseEvent, d: Mdata): void => {
   e.stopPropagation()
   selectGNode(d)
+  emitter.emit('selectLabel', d)
 }
 
 /**

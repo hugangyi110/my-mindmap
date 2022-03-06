@@ -30,19 +30,19 @@
 
 <script lang="ts">
 import emitter from '@/mitt'
-import { defineComponent, onMounted, PropType, watch, watchEffect } from 'vue'
-import { Data, Locale, TwoNumber } from './interface'
+import {defineComponent, onMounted, PropType, watch, watchEffect} from 'vue'
+import {Data, Locale, TwoNumber} from './interface'
 import style from './css'
 import * as d3 from './d3'
-import { afterOperation, ImData, mmdata } from './data'
-import { hasNext, hasPrev } from './state'
-import { fitView, getSize, centerView, next, prev, download, bindForeignDiv } from './assistant'
-import { xGap, yGap, branch, scaleExtent, ctm, selection, changeSharpCorner, addNodeBtn, mmprops } from './variable'
-import { wrapperEle, svgEle, gEle, asstSvgEle, foreignEle, foreignDivEle  } from './variable/element'
-import { draw } from './draw'
-import { switchZoom, switchEdit, switchSelect, switchContextmenu, switchDrag, onClickMenu } from './listener'
+import {afterOperation, ImData, mmdata} from './data'
+import {hasNext, hasPrev} from './state'
+import {fitView, getSize, centerView, next, prev, download, bindForeignDiv} from './assistant'
+import {xGap, yGap, branch, scaleExtent, ctm, selection, changeSharpCorner, addNodeBtn, mmprops} from './variable'
+import {wrapperEle, svgEle, gEle, asstSvgEle, foreignEle, foreignDivEle} from './variable/element'
+import {draw} from './draw'
+import {switchZoom, switchEdit, switchSelect, switchContextmenu, switchDrag, onClickMenu} from './listener'
 import Contextmenu from '../Contextmenu.vue'
-import { cloneDeep } from 'lodash'
+import {cloneDeep} from 'lodash'
 import i18next from '../../i18n'
 
 export default defineComponent({
@@ -50,19 +50,19 @@ export default defineComponent({
   components: {
     Contextmenu
   },
-  emits: ['update:modelValue'],
+  emits: ['update:modelValue', 'selectLabel'],
   props: {
     modelValue: {
       type: Array as PropType<Data[]>,
       required: true
     },
     // 绘制所需的变量
-    xGap: { type: Number, default: xGap },
-    yGap: { type: Number, default: yGap },
+    xGap: {type: Number, default: xGap},
+    yGap: {type: Number, default: yGap},
     branch: {
       type: Number,
       default: branch,
-      validator: (val: number) => val >= 1 && val <= 6 
+      validator: (val: number) => val >= 1 && val <= 6
     },
     scaleExtent: {
       type: Object as PropType<TwoNumber>,
@@ -81,31 +81,36 @@ export default defineComponent({
     ctm: Boolean,
     zoom: Boolean,
     // i18n
-    locale: { type: String as PropType<Locale>, default: 'zh' }
+    locale: {type: String as PropType<Locale>, default: 'zh'}
   },
-  setup (props, context) {
+  setup(props, context) {
     // 立即执行
     watchEffect(() => i18next.changeLanguage(props.locale))
     watchEffect(() => emitter.emit('scale-extent', props.scaleExtent))
     watchEffect(() => emitter.emit('branch', props.branch))
     watchEffect(() => emitter.emit('sharp-corner', props.sharpCorner))
-    watchEffect(() => emitter.emit('gap', { xGap: props.xGap, yGap: props.yGap }))
+    watchEffect(() => emitter.emit('gap', {xGap: props.xGap, yGap: props.yGap}))
     watchEffect(() => emitter.emit('mindmap-context', context))
     watchEffect(() => addNodeBtn.value = props.edit && props.addNodeBtn)
     watchEffect(() => mmprops.value.drag = props.drag)
     watchEffect(() => mmprops.value.edit = props.edit)
+    // 新增选择标签事件
+    watchEffect(() => emitter.on('selectLabel', (val) => context.emit('selectLabel', val)))
+
     // onMounted
     onMounted(() => {
-      if (!svgEle.value || !gEle.value || !asstSvgEle.value || !foreignEle.value || !foreignDivEle.value) { return }
+      if (!svgEle.value || !gEle.value || !asstSvgEle.value || !foreignEle.value || !foreignDivEle.value) {
+        return
+      }
       emitter.emit('selection-svg', d3.select(svgEle.value))
       emitter.emit('selection-g', d3.select(gEle.value))
       emitter.emit('selection-asstSvg', d3.select(asstSvgEle.value))
-      emitter.emit('selection-foreign',d3.select(foreignEle.value))
+      emitter.emit('selection-foreign', d3.select(foreignEle.value))
       emitter.emit('mmdata', new ImData(cloneDeep(props.modelValue[0]), xGap, yGap, getSize))
 
       changeSharpCorner.value = false
       afterOperation()
-      const { svg, foreign } = selection
+      const {svg, foreign} = selection
       foreign?.raise()
       bindForeignDiv()
       fitView()
@@ -133,6 +138,12 @@ export default defineComponent({
     })
     watch(() => props.zoom, (val) => switchZoom(val))
     watch(() => props.ctm, (val) => switchContextmenu(val))
+
+    //新增绑定数据变化时触发重绘
+    watch(() => props.modelValue, () => {
+      emitter.emit('mmdata', new ImData(cloneDeep(props.modelValue[0]), xGap, yGap, getSize))
+      draw()
+    })
 
     return {
       wrapperEle,
