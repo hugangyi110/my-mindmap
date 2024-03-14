@@ -1,0 +1,29 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - main # 假设你的主分支为main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Node.js
+      uses: actions/setup-node@v1
+      with:
+        node-version: '14' # 指定Node.js版本
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Build
+      run: npm run build # 运行你的构建脚本
+
+    - name: Deploy
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ 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 }}
+        publish_dir: ./dist
+        publish_branch: dist # 将构建产物推送到dist分支
